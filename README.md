@@ -18,4 +18,6 @@ MATERIALE:
 - cavi vari
 - scatola derivazione stagna
 
+FILE PRINCIPALE: centralina_irrigazione_semenzaio.ino
 VIDEO YOUTUBE: https://www.youtube.com/watch?v=5t5eGuC52Xg
+
