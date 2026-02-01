@@ -12,8 +12,9 @@ MATERIALE:
 - 2x condensatore ceramico
 - 2x condensatore elettrolitico
 - diodo
-- batteria 12v
+- alimentazione 12v
 - dht11
+- modulo RTC
 - pompa 12v
 - cavi vari
 - scatola derivazione stagna
