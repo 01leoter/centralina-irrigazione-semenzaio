@@ -4,7 +4,7 @@ float calculateWeeklyTemperatureAverage() {
   int count = 0;
 
   for (int i = 0; i < 7; i++) {
-    if (weeklyTemperatures[i].temperature != 0) {
+    if (weeklyTemperatures[i].valid) {
       totalTemperature += weeklyTemperatures[i].temperature;
       count++;
     }
@@ -13,6 +13,6 @@ float calculateWeeklyTemperatureAverage() {
   if (count > 0) {
     return totalTemperature / count;
   } else {
-    return 0; // Non ci sono dati disponibili per calcolare la media
+    return -999; // Valore sentinella per indicare "nessun dato disponibile"
   }
 }

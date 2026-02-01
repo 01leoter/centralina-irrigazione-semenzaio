@@ -1,26 +1,25 @@
 // Controllo lampeggio led
 void controlloLED(unsigned long currentMillis) {
-  if(relayState || relayStateManual){
+  // Verifica lo stato FISICO del relè (LOW = acceso, HIGH = spento)
+  bool relayActive = (digitalRead(relayPin) == LOW);
+  
+  if (relayActive) {
+    // LED FISSO quando irrigazione è attiva
     digitalWrite(ledPin, HIGH);
-  }
-  else{
-    if (WiFi.getMode() == WIFI_AP) {
-      // Se in modalità AP, lampeggia ogni 500 ms
-      if (currentMillis - previousMillis >= intervalAP) {
-        previousMillis = currentMillis; // Salva il tempo dell'ultimo lampeggio
-        // Cambia lo stato del LED (se acceso, spegni, se spento, accendi)
-        digitalWrite(ledPin, !digitalRead(ledPin));
-      }
+  } else if (WiFi.getMode() == WIFI_AP) {
+    // LAMPEGGIO VELOCE quando AP è attivo e relè spento (500ms)
+    if (currentMillis - previousMillis >= intervalAP) {
+      previousMillis = currentMillis;
+      digitalWrite(ledPin, !digitalRead(ledPin));
     }
-    else {
-      // Se non in modalità AP, accendi per 500 ms e poi spegni per 3000 ms
-      if (currentMillis - previousMillis <= intervalNormalON) {
-        digitalWrite(ledPin, HIGH); // Accendi il LED
-      } else if (currentMillis - previousMillis <= intervalNormalON + intervalNormalOFF) {
-        digitalWrite(ledPin, LOW); // Spegni il LED
-      } else {
-        previousMillis = currentMillis; // Reimposta il tempo dell'ultimo cambiamento
-      }
+  } else {
+    // LAMPEGGIO LENTO in standby (200ms ON / 3000ms OFF)
+    if (currentMillis - previousMillis <= intervalNormalON) {
+      digitalWrite(ledPin, HIGH);
+    } else if (currentMillis - previousMillis <= intervalNormalON + intervalNormalOFF) {
+      digitalWrite(ledPin, LOW);
+    } else {
+      previousMillis = currentMillis;
     }
   }
 }

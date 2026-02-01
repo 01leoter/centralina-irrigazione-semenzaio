@@ -1,69 +1,66 @@
-// Gestische i dati del DHT
+// Gestisce i dati del DHT
 void controlloDHT() {
   if (currentMillis - previousMillisSensor >= intervalSensor) {
     previousMillisSensor = currentMillis;
-    EEPROM.begin(512); // Inizializzazione della libreria EEPROM
 
     temperature = dht.getTemperature();
     humidity = dht.getHumidity();
 
+    // Validazione lettura sensore
     if (isnan(temperature) || isnan(humidity)) {
       Serial.println("Errore durante la lettura del sensore DHT!");
       return;
     }
+    
+    // Validazione range realistici per DHT11
+    if (temperature < -40 || temperature > 80) {
+      Serial.println("Temperatura fuori range valido DHT11");
+      return;
+    }
+    
+    if (humidity < 0 || humidity > 100) {
+      Serial.println("Umidità fuori range valido");
+      return;
+    }
 
-    // Verifica e aggiornamento dei valori massimi e minimi
-  if (temperature > temp_max) {
-    temp_max = temperature;
-    ora_temp_max = hour();
+    // Verifica e aggiornamento temperatura massima
+    if (temperature > temp_max) {
+      temp_max = temperature;
+      ora_temp_max = hour();
+      salvaInEEPROM(0, temp_max);
+      salvaInEEPROM(4 * sizeof(int), ora_temp_max);
+    }
 
-    // Salvataggio nella EEPROM
-    EEPROM.begin(512);
-    EEPROM.put(0, temp_max);
-    EEPROM.put(4 * sizeof(int), ora_temp_max);
-    EEPROM.commit();
-    EEPROM.end();
-  }
+    // Verifica e aggiornamento temperatura minima
+    if (temperature < temp_min) {
+      temp_min = temperature;
+      ora_temp_min = hour();
+      salvaInEEPROM(sizeof(int), temp_min);
+      salvaInEEPROM(5 * sizeof(int), ora_temp_min);
+    }
 
-  if (temperature < temp_min) {
-    temp_min = temperature;
-    ora_temp_min = hour();
+    // Verifica e aggiornamento umidità massima
+    if (humidity > umid_max) {
+      umid_max = humidity;
+      ora_umid_max = hour();
+      salvaInEEPROM(2 * sizeof(int), umid_max);
+      salvaInEEPROM(6 * sizeof(int), ora_umid_max);
+    }
 
-    // Salvataggio nella EEPROM
-    EEPROM.begin(512);
-    EEPROM.put(sizeof(int), temp_min);
-    EEPROM.put(5 * sizeof(int), ora_temp_min);
-    EEPROM.commit();
-    EEPROM.end();
-  }
-
-  if (humidity > umid_max) {
-    umid_max = humidity;
-    ora_umid_max = hour();
-
-    // Salvataggio nella EEPROM
-    EEPROM.begin(512);
-    EEPROM.put(2 * sizeof(int), umid_max);
-    EEPROM.put(6 * sizeof(int), ora_umid_max);
-    EEPROM.commit();
-    EEPROM.end();
-  }
-
-  if (humidity < umid_min) {
-    umid_min = humidity;
-    ora_umid_min = hour();
-
-    // Salvataggio nella EEPROM
-    EEPROM.begin(512);
-    EEPROM.put(3 * sizeof(int), umid_min);
-    EEPROM.put(7 * sizeof(int), ora_umid_min);
-    EEPROM.commit();
-    EEPROM.end();
-  }
+    // Verifica e aggiornamento umidità minima
+    if (humidity < umid_min) {
+      umid_min = humidity;
+      ora_umid_min = hour();
+      salvaInEEPROM(3 * sizeof(int), umid_min);
+      salvaInEEPROM(7 * sizeof(int), ora_umid_min);
+    }
 
     // Aggiorna le temperature giornaliere
-    int currentDayIndex = weekday() - 1; // Ottieni l'indice del giorno della settimana (da 0 a 6)
+    // TimeLib: 1=Domenica, 2=Lunedì, 3=Martedì, ..., 7=Sabato
+    // Nostro array: 0=Lunedì, 1=Martedì, ..., 6=Domenica
+    int currentDayIndex = (weekday() == 1) ? 6 : weekday() - 2;
     weeklyTemperatures[currentDayIndex].temperature = temperature;
     weeklyTemperatures[currentDayIndex].hour = hour();
+    weeklyTemperatures[currentDayIndex].valid = true;
   }
 }

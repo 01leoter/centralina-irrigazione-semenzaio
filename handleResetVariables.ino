@@ -1,19 +1,23 @@
-// Resetta i valori salvati dopo il click del pulsante nel webserver
+// Azzera i valori min/max salvati
 void handleResetVariables() {
-  temperature = dht.getTemperature();
-  humidity = dht.getHumidity();
-  // Reimposta tutte le variabili
-  temp_max = temperature;
-  temp_min = temperature;
-  umid_max = humidity;
-  umid_min = humidity;
-  ora_temp_max = hour();
-  ora_temp_min = hour();
-  ora_umid_max = hour();
-  ora_umid_min = hour();
+  temp_max = -127;
+  temp_min = 127;
+  umid_max = 0;
+  umid_min = 100;
+  ora_temp_max = 0;
+  ora_temp_min = 0;
+  ora_umid_max = 0;
+  ora_umid_min = 0;
+  
+  // Azzera anche le temperature settimanali
+  for (int i = 0; i < 7; i++) {
+    weeklyTemperatures[i].temperature = 0;
+    weeklyTemperatures[i].hour = 0;
+    weeklyTemperatures[i].valid = false;
+  }
 
-  // Salvataggio delle variabili aggiornate nella EEPROM
-  EEPROM.begin(512); // Inizializzazione della libreria EEPROM
+  // Salva in EEPROM
+  EEPROM.begin(512);
   EEPROM.put(0, temp_max);
   EEPROM.put(sizeof(int), temp_min);
   EEPROM.put(2 * sizeof(int), umid_max);
@@ -22,9 +26,11 @@ void handleResetVariables() {
   EEPROM.put(5 * sizeof(int), ora_temp_min);
   EEPROM.put(6 * sizeof(int), ora_umid_max);
   EEPROM.put(7 * sizeof(int), ora_umid_min);
-  EEPROM.commit(); // Salvataggio effettivo dei dati nella EEPROM
-  EEPROM.end(); // Fine utilizzo della EEPROM
+  EEPROM.commit();
+  EEPROM.end();
+  
+  logEvent("Valori min/max azzerati");
 
-  // Invia conferma al client
-  server.send(200, "text/plain", "Tutte le variabili sono state azzerate!");
+  server.sendHeader("Location", "/");
+  server.send(303);
 }

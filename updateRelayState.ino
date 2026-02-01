@@ -1,20 +1,54 @@
-// Gestisce il relè
+// Gestisce il relè in modalità automatica
 void updateRelayState() {
-  int currentDayIndex = weekday() - 1; // Ottieni l'indice del giorno della settimana (da 0 a 6)
-  int currentHour = hour();
-  int currentMinute = minute();
+  // Se siamo in modalità manuale ON, non fare nulla (resta acceso fino a comando manuale)
+  if (manualMode && manualModeOn) {
+    return;
+  }
+  
+  // TimeLib: 1=Domenica, 2=Lunedì, 3=Martedì, ..., 7=Sabato
+  // Nostro array: 0=Lunedì, 1=Martedì, ..., 6=Domenica
+  int currentDayIndex = (weekday() == 1) ? 6 : weekday() - 2;
+  
+  int currentMinutes = hour() * 60 + minute();
+  int startMinutes = weeklySchedule[currentDayIndex].startHour * 60 + 
+                     weeklySchedule[currentDayIndex].startMinute;
+  int endMinutes = startMinutes + weeklySchedule[currentDayIndex].durationMinutes;
 
-  // Controlla se l'ora attuale è compresa negli orari di accensione e spegnimento per il giorno corrente
-  bool shouldBeOn = (currentHour > weeklySchedule[currentDayIndex].startHour || (currentHour == weeklySchedule[currentDayIndex].startHour && currentMinute >= weeklySchedule[currentDayIndex].startMinute)) &&
-                    (currentHour < weeklySchedule[currentDayIndex].endHour || (currentHour == weeklySchedule[currentDayIndex].endHour && currentMinute < weeklySchedule[currentDayIndex].endMinute));
+  // Se siamo in modalità manuale OFF, controlla se è arrivato l'orario di STOP
+  if (manualMode && !manualModeOn) {
+    if (currentMinutes >= manualStopTime) {
+      // È arrivato l'orario di STOP, riprendi il controllo automatico
+      manualMode = false;
+      logEvent("Orario di STOP raggiunto - riprendo controllo automatico");
+    } else {
+      // Non è ancora l'orario di STOP, resta spento
+      return;
+    }
+  }
 
+  // Controllo automatico normale
+  bool shouldBeOn = false;
+  
+  // Se la durata è 0, non irrigare
+  if (weeklySchedule[currentDayIndex].durationMinutes > 0) {
+    if (endMinutes >= 1440) {
+      // Caso attraverso mezzanotte (es. 23:30 durata 60min → fine 00:30)
+      endMinutes = endMinutes - 1440;  // Normalizza
+      shouldBeOn = (currentMinutes >= startMinutes || currentMinutes < endMinutes);
+    } else {
+      // Caso normale
+      shouldBeOn = (currentMinutes >= startMinutes && currentMinutes < endMinutes);
+    }
+  }
+
+  // Aggiorna lo stato del relè in base alla programmazione
   if (shouldBeOn && !relayState) {
-    // Se dovrebbe essere acceso ma non lo è, accendi il relè
-    digitalWrite(relayPin, LOW);
-    relayState = true; // Aggiorna lo stato del relè
+    digitalWrite(relayPin, LOW);  // LOW = acceso
+    relayState = true;
+    logEvent("Irrigazione ATTIVATA (automatico)");
   } else if (!shouldBeOn && relayState) {
-    // Se dovrebbe essere spento ma non lo è, spegni il relè
-    digitalWrite(relayPin, HIGH);
-    relayState = false; // Aggiorna lo stato del relè
+    digitalWrite(relayPin, HIGH);  // HIGH = spento
+    relayState = false;
+    logEvent("Irrigazione DISATTIVATA (automatico)");
   }
 }
